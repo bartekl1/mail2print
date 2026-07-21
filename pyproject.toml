@@ -1,0 +1,16 @@
+[project]
+name = "mail2print"
+version = "1.0.0"
+description = ""
+authors = [
+    {name = "bartekl1"}
+]
+requires-python = ">=3.11"
+dependencies = [
+    "imapclient (>=3.1.0,<4.0.0)",
+    "pyyaml (>=6.0.3,<7.0.0)",
+    "pycups (>=2.0.4,<3.0.0)"
+]
+
+[tool.poetry]
+package-mode = false
