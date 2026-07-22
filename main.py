@@ -124,6 +124,8 @@ def main():
         except KeyboardInterrupt:
             logger.info("Exiting...")
             break
+        except Exception as e:
+            logger.error(f"Unhandled exception: {repr(e)}")
 
     server.idle_done()
     server.logout()
