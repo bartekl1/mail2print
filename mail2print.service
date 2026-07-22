@@ -1,0 +1,14 @@
+# /etc/systemd/system/mail2print.service
+[Unit]
+Description=mail2print
+After=network.target
+
+[Service]
+Type=simple
+User=<USERNAME>
+WorkingDirectory=<PATH_TO_DIRECTORY>
+ExecStart=<PATH_TO_DIRECTORY>/.venv/bin/python <PATH_TO_DIRECTORY>/main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
