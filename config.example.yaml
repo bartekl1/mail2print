@@ -1,0 +1,20 @@
+# Rename this file to config.yaml
+imap:                               # IMAP Server configuration
+  server: example.com               # IMAP Server host
+  port: 993                         # IMAP Server port (optional, default: 993 for SSL or 143 for no SSL)
+  user: username@example.com        # IMAP username
+  password: secretpassword          # IMAP password
+  ssl: true                         # Whether SSL should be used (optional, default: true)
+
+allowed_senders:                    # List of email addresses allowed to print, if set to null (not recommended) everyone is allowed to print (optional, default: null)
+  - user1@example.com
+  - user2@example.com
+
+allowed_mimetypes:                  # List of allowed attachment mimetypes, is set to null every mimetype is allowed (optional, default: null)
+  - application/pdf
+
+printer: printer_name               # Printer name in CUPS, get with "lpstat -v"
+
+logging:                            # Logging configuration (optional)
+  level: info                       # Logging level (optional, default: info)
+  file: logs.log                    # Logging file, if set to null logging to file is disabled (optional, default: null)
