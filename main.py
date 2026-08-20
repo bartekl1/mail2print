@@ -1,4 +1,5 @@
 from imapclient import IMAPClient
+from imapclient.exceptions import LoginError
 import yaml
 import cups
 
@@ -6,9 +7,13 @@ from tempfile import NamedTemporaryFile
 from typing import BinaryIO
 import logging
 import email
+import time
 import sys
 import re
 import os
+
+IDLE_TIMEOUT = 10
+IDLE_RENEW_INTERVAL = 60 * 5
 
 def get_config() -> dict:
     with open("config.yaml") as file:
@@ -100,35 +105,57 @@ def main():
     setup_logging(config)
     logger = logging.getLogger(__name__)
 
-    logger.info("Connecting to IMAP server...")
-    server = IMAPClient(host=config.get("imap", {}).get("server"),
-                        port=config.get("imap", {}).get("port", None),
-                        ssl=config.get("imap", {}).get("ssl", True))
-    server.login(config.get("imap", {}).get("user"), config.get("imap").get("password"))
-    logger.info("Connected")
-    server.select_folder("INBOX")
-
-    process_new_messages(server, config)
-    server.idle()
-
     while True:
         try:
-            responses = server.idle_check(timeout=10)
-            if responses:
-                logger.debug("Server sent response. Processing new e-mails...")
-                server.idle_done()
-                process_new_messages(server, config)
-                server.idle()
-            else:
-                logger.debug("Server sent nothing.")
+            logger.info("Connecting to IMAP server...")
+            server = IMAPClient(host=config.get("imap", {}).get("server"),
+                                port=config.get("imap", {}).get("port", None),
+                                ssl=config.get("imap", {}).get("ssl", True))
+            server.login(config.get("imap", {}).get("user"), config.get("imap").get("password"))
+            logger.info("Connected")
+            server.select_folder("INBOX")
+
+            process_new_messages(server, config)
+            server.idle()
+            idle_started = time.monotonic()
+
+            while True:
+                if time.monotonic() - idle_started > IDLE_RENEW_INTERVAL:
+                    logger.debug("Renewing IDLE session...")
+                    server.idle_done()
+                    server.idle()
+                    idle_started = time.monotonic()
+                    continue
+
+                responses = server.idle_check(timeout=IDLE_TIMEOUT)
+                if responses:
+                    logger.debug("Server sent response. Processing new e-mails...")
+                    server.idle_done()
+                    process_new_messages(server, config)
+                    server.idle()
+                    idle_started = time.monotonic()
+                else:
+                    logger.debug("Server sent nothing.")
+
         except KeyboardInterrupt:
             logger.info("Exiting...")
+            try:
+                server.idle_done()
+                server.logout()
+            except Exception:
+                pass
+            break
+        except LoginError:
+            logger.critical("Invalid credentials")
             break
         except Exception as e:
             logger.error(f"Unhandled exception: {repr(e)}")
-
-    server.idle_done()
-    server.logout()
+            try:
+                server.logout()
+            except Exception:
+                pass
+            time.sleep(10)
+            continue
 
 if __name__ == "__main__":
     main()
